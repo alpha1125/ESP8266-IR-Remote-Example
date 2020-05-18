@@ -1,4 +1,4 @@
-#include "Arduino.h"
+#include <Arduino.h>
 #include "../lib/IRremoteESP8266/src/IRremoteESP8266.h"
 #include "../lib/IRremoteESP8266/src/IRsend.h"
 #include <ESP8266WiFi.h>
@@ -7,36 +7,27 @@
 #include <ESP8266mDNS.h>
 //#include <vector>
 
+
+#include "credentials.h"
 #include "configuration.h"
+#include "html.h" // HTML portion.
+#include "codes.h" // HTML portion.
 
-#define DELAY_BETWEEN_COMMANDS 1000
+#include "codes.h"
 
-//#define IR_SEND_PIN D2
-//#define WEB_SERVER_PORT 80
-//
-//#define MDNS_NAME "sharpremote2"
-//#define SSID "LeungIoT"
-//#define SSID_PASSWORD "4uD*qtNWgy"
 
-const char* mDNSName = MDNS_NAME;
-const char* ssid = SSID;
-const char* password = SSID_PASSWORD;
+// Uncomment to override the credentials.h file.
+// #define mySSID "wifi_ssid"
+// #define myPASSWORD "wifi_password"
+// #define MDNS_NAME "mdnsHostName"  =>  e.g: mdnsHostName.local
+
 
 ESP8266WebServer server(WEB_SERVER_PORT);
-
-
-
 IRsend irsend(IR_SEND_PIN);
 
-const int led = BUILTIN_LED;
+const int led = LED_BUILTIN;
 
-String rowDiv = "    <div class=\"row\">\n";
-String endDiv = "    </div>\n";
-char buttonTemplate[] = R"=====(
-    <div class="%s" style="text-align: center">
-      <button id="%s" type="button" class="%s" onclick='makeAjaxCall("%s")'>%s</button>
-    </div>
-)=====";
+
 
 
 
@@ -68,25 +59,7 @@ String generateSpacer(String classDefinition) {
 
 void handleRoot() {
     digitalWrite(led, 0);
-    String website = R"=====(<!DOCTYPE html>
-<html>
-  <head>
-    <title>Sharp TV Remote</title>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="HandheldFriendly" content="true">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
-<style>
-html, body {
-//    touch-action:none;
-    -webkit-text-size-adjust: none;
-}
-</style>
-  </head>
-  <body>
-    <div class="container-fluid">
-)=====";
+    String website = htmlHeader;
 
     // ------------------------- Power Controls --------------------------
     website += rowDiv;
@@ -182,11 +155,7 @@ html, body {
 
 
 
-    website += "    <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js\"></script>\n";
-    website += "    <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js\"></script>\n";
-    website += "    <script> function makeAjaxCall(url){$.ajax({\"url\": url})}</script>\n";
-    website += "  </body>\n";
-    website += "</html>\n";
+    website += htmlFooter;
 
     server.send(200, "text/html", website);
     digitalWrite(led, 1);
@@ -213,8 +182,6 @@ void sendIrCommand(const char *ResponseMsg , int command) {
     Serial.println(ResponseMsg);
     irsend.sendSharpRaw(command, kSharpBits);
     server.send(200, "text/plain", ResponseMsg);
-
-
 }
 
 void setupRoutes(){
@@ -277,7 +244,7 @@ void setup(void) {
     pinMode(led, OUTPUT);
     digitalWrite(led, 1);
     Serial.begin(115200);
-    WiFi.begin(ssid, password);
+    WiFi.begin(mySSID, myPASSWORD);
     Serial.println("Attempting to connect to WiFi");
 
     // Wait for connection
@@ -287,14 +254,14 @@ void setup(void) {
     }
     Serial.println("");
     Serial.print("Connected to ");
-    Serial.println(ssid);
+    Serial.println(mySSID);
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
     Serial.print("Mac: ");
     Serial.println(WiFi.macAddress());
 
 
-    if (MDNS.begin(mDNSName)) {
+    if (MDNS.begin(MDNS_NAME)) {
         Serial.println("MDNS Responder Started");
     }
 
@@ -305,5 +272,8 @@ void setup(void) {
 }
 
 void loop(void) {
+//    MDNS.update();  // needs to be in the loop to rebroadcast from time to time.
+
     server.handleClient();
+
 }

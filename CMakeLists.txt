@@ -30,5 +30,5 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(Z_DUMMY_TARGET ${SRC_LIST} src/configuration.h)
+add_executable(Z_DUMMY_TARGET ${SRC_LIST} src/configuration.h ../../.platformio/packages/framework-arduinoespressif8266/cores/esp8266/credentials.h src/html.h src/codes.h)
 
