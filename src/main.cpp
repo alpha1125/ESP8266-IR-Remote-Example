@@ -1,163 +1,36 @@
 #include <Arduino.h>
-#include "../lib/IRremoteESP8266/src/IRremoteESP8266.h"
-#include "../lib/IRremoteESP8266/src/IRsend.h"
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
 #include <ESP8266WiFi.h>
-//#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
-//#include <vector>
 
 
 #include "credentials.h"
 #include "configuration.h"
 #include "html.h" // HTML portion.
-#include "codes.h" // HTML portion.
 
-#include "codes.h"
+#include "Button.h" // IR Codes portion.
 
+std::vector<Button> vectorOfButtons;
 
 // Uncomment to override the credentials.h file.
 // #define mySSID "wifi_ssid"
 // #define myPASSWORD "wifi_password"
-// #define MDNS_NAME "mdnsHostName"  =>  e.g: mdnsHostName.local
-
+//#define MDNS_NAME "mdnsHostName"  // =>  e.g: mdnsHostName.local
 
 ESP8266WebServer server(WEB_SERVER_PORT);
-IRsend irsend(IR_SEND_PIN);
+IRsend           irsend(IR_SEND_PIN);
 
 const int led = LED_BUILTIN;
 
-
-
-
-
-
-
-// Buttons are using the bootstrap grid for sizing - http://getbootstrap.com/css/#grid
-String generateButton(const char *divClass, const char *label, const char *url, const char *btnClass="btn btn-default btn-block") {
-    char s[1000];
-    sprintf(
-            s,
-            buttonTemplate,
-
-            divClass, // divClass
-            url,      // btnID
-            btnClass, // btnClass
-            url,      // ajaxURL
-            label     // buttn label.
-    );
-    return s;
-}
-
-
-
-// Buttons are using the bootstrap grid for sizing - http://getbootstrap.com/css/#grid
-String generateSpacer(String classDefinition) {
-    return  "<div class=\"" + classDefinition + "\"></div>\n";
-}
-
-
-void handleRoot() {
+void handleHtmlGZ(const char *encodingString, const char *gzString, const int size) {
     digitalWrite(led, 0);
-    String website = htmlHeader;
 
-    // ------------------------- Power Controls --------------------------
-    website += rowDiv;
+    server.sendHeader("content-encoding", "gzip");
+    server.sendHeader("Expires", "Mon, 1 Jan 2222 10:10:10 GMT");
+    server.send_P(200, encodingString, gzString, size);
 
-    website += generateButton("col-12", "Power", "Power", "btn btn-danger  btn-block");
-    website += generateButton("col-4", "Display", "Display");
-    website += generateButton("col-4", "Sleep", "Sleep");
-    website += generateButton("col-4", "AV mode", "AVmode");
-    website += generateButton("col-4", "CC", "CC");
-    website += generateButton("col-4", "Audio", "Audio");
-    website += generateButton("col-4", "Mute", "Mute");
-    website += endDiv;
-
-
-
-    // ------------------------- Channel Controls --------------------------
-    website += rowDiv;
-
-    website += generateButton("col-3", "1", "1");
-    website += generateButton("col-3", "2", "2");
-    website += generateButton("col-3", "3", "3");
-    website += generateButton("col-3", "CH +", "ChUp", "btn btn-primary  btn-block");
-    website += endDiv;
-    website += rowDiv;
-    website += generateButton("col-3", "4", "4");
-    website += generateButton("col-3", "5", "5");
-    website += generateButton("col-3", "6", "6");
-    website += generateButton("col-3", "CH -", "ChDn", "btn btn-primary  btn-block");
-    website += endDiv;
-
-    website += rowDiv;
-    website += generateButton("col-3", "7", "7");
-    website += generateButton("col-3", "8", "8");
-    website += generateButton("col-3", "9", "9");
-    website += generateButton("col-3", "Vol +", "VolUp", "btn btn-success  btn-block");
-    website += endDiv;
-
-    website += rowDiv;
-
-    website += generateButton("col-3", "*", "*");
-    website += generateButton("col-3", "0", "0");
-    website += generateButton("col-3", "ENT", "ENT");
-    website += generateButton("col-3", "Vol -", "VolDn", "btn btn-success  btn-block");
-    website += endDiv;
-
-    website += rowDiv;
-    website += generateButton("col-3", "Flashback", "Flashback");
-    website += generateButton("col-3", "View mode", "ViewMode");
-    website += generateButton("col-3", "PC", "Pc");
-    website += generateButton("col-3", "Input", "Input");
-    website += endDiv;
-
-    website += rowDiv;
-    website += generateButton("col-6", "Freeze", "Freeze");
-    website += generateButton("col-6", "Menu", "Menu");
-    website += endDiv;
-
-    website += rowDiv;
-
-
-    // TODO: Insert a spacer here
-    website += generateSpacer("col-4");
-    website += generateButton("col-4", "Up", "Up");
-    website += endDiv;
-
-    website += rowDiv;
-
-    website += generateButton("col-4", "Left", "Left");
-    website += generateButton("col-4", "Enter", "Enter");
-    website += generateButton("col-4", "Right", "Right");
-    website += endDiv;
-
-    website += rowDiv;
-    // TODO: Insert a spacer here
-    website += generateSpacer("col-4");
-    website += generateButton("col-4", "Down", "Down");
-    website += endDiv;
-
-    website += rowDiv;
-    website += generateButton("col-6", "Exit", "Exit");
-    website += generateButton("col-6", "Return", "Return");
-
-
-    website += endDiv;
-
-    website += rowDiv;
-
-    website += generateButton("col-3", "A", "A", "btn btn-danger btn-block");
-    website += generateButton("col-3", "B", "B", "btn btn-success btn-block");
-    website += generateButton("col-3", "C", "C", "btn btn-primary btn-block");
-    website += generateButton("col-3", "D", "D", "btn btn-warning btn-block");
-    website += endDiv;
-
-
-
-    website += htmlFooter;
-
-    server.send(200, "text/html", website);
     digitalWrite(led, 1);
 }
 
@@ -178,65 +51,65 @@ void handleNotFound() {
     digitalWrite(led, 1);
 }
 
-void sendIrCommand(const char *ResponseMsg , int command) {
+void sendIrCommand(const String ResponseMsg, const int command) {
     Serial.println(ResponseMsg);
     irsend.sendSharpRaw(command, kSharpBits);
     server.send(200, "text/plain", ResponseMsg);
 }
 
-void setupRoutes(){
-    server.on("/", handleRoot);
+// convert a char* to hex values.
+int x2i(char *s)
+{
+    int x = 0;
+    for(;;) {
+        char c = *s;
+        if (c >= '0' && c <= '9') {
+            x *= 16;
+            x += c - '0';
+        }
+        else if (c >= 'A' && c <= 'F') {
+            x *= 16;
+            x += (c - 'A') + 10;
+        }
+        else break;
+        s++;
+    }
+    return x;
+}
 
-    server.on("/Power", []() {    sendIrCommand("Power", 0x41A2);  });
-    server.on("/Display", []() {    sendIrCommand("Display", 0x4362);  });
-    server.on("/Sleep", []() {    sendIrCommand("Sleep", 0x4162);  });
-    server.on("/AVmode", []() {    sendIrCommand("AV mode", 0x407E);  });
-    server.on("/CC", []() {    sendIrCommand("CC", 0x414A);  });
-    server.on("/Audio", []() {    sendIrCommand("Audio", 0x4062);  });
-    server.on("/Mute", []() {    sendIrCommand("Mute", 0x43A2);  });
-    server.on("/1", []() {    sendIrCommand("1", 0x4202);  });
-    server.on("/2", []() {    sendIrCommand("2", 0x4102);  });
-    server.on("/3", []() {    sendIrCommand("3", 0x4302);  });
-    server.on("/4", []() {    sendIrCommand("4", 0x4082);  });
-    server.on("/5", []() {    sendIrCommand("5", 0x4282);  });
-    server.on("/6", []() {    sendIrCommand("6", 0x4182);  });
-    server.on("/7", []() {    sendIrCommand("7", 0x4382);  });
-    server.on("/8", []() {    sendIrCommand("8", 0x4042);  });
-    server.on("/9", []() {    sendIrCommand("9", 0x4242);  });
-    server.on("/0", []() {    sendIrCommand("0", 0x4142);  });
-    server.on("/*", []() {    sendIrCommand("*", 0x4572);  });
-    server.on("/ENT", []() {    sendIrCommand("ENT", 0x4342);  });
+void buttonPress(){
+    String message = "";
+    String label = "";
+    String hexcode = "";
+    bool error = false;
 
-    server.on("/ChUp", []() {    sendIrCommand("CH +", 0x4222);  });
-    server.on("/ChDn", []() {    sendIrCommand("CH -", 0x4122);  });
-    server.on("/VolUp", []() {    sendIrCommand("Vol +", 0x40A2);  });
-    server.on("/VolDn", []() {    sendIrCommand("Vol -", 0x42A2);  });
+    if (server.arg("label")== ""){     //Parameter not found
+        message += "label argument not found\n";
+        error = true;
+    }
+    if (server.arg("hexcode")== ""){     //Parameter not found
+        message += "hexcode argument not found\n";
+        error = true;
+    }
 
+    if(error){
+        server.send(400, "text/plain", message);
+        Serial.println(message);
+    }
 
+    label = server.arg("label");
+    hexcode = server.arg("hexcode");
 
-    server.on("/Flashback", []() {    sendIrCommand("Flashback", 0x43d2);  });
-    server.on("/ViewMode", []() {    sendIrCommand("View mode", 0x4016);  });
-    server.on("/Pc", []() {    sendIrCommand("Pc", 0x3e06);  });
-    server.on("/Input", []() {    sendIrCommand("Input", 0x4322);  });
+    const int code = x2i(const_cast <char*>(hexcode.c_str()));
 
-    server.on("/Freeze", []() {    sendIrCommand("Freeze", 0x432a);  });
-    server.on("/Up", []() {    sendIrCommand("Up", 0x43aa);  });
-    server.on("/Down", []() {    sendIrCommand("Down", 0x406a);  });
-    server.on("/Left", []() {    sendIrCommand("Left", 0x42be);  });
-    server.on("/Right", []() {    sendIrCommand("Right", 0x41be);  });
-    server.on("/Enter", []() {    sendIrCommand("Enter", 0x43be);  });
-    server.on("/Menu", []() {    sendIrCommand("Menu", 0x4012);  });
-    server.on("/Exit", []() {    sendIrCommand("Exit", 0x433e);  });
-    server.on("/Return", []() {    sendIrCommand("Return", 0x40be);  });
+    sendIrCommand(
+             "Received req:" + hexcode + "(" + label +")",
+             code
+      );
 
-    server.on("/A", []() {    sendIrCommand("A", 0x4236);  });
-    server.on("/B", []() {    sendIrCommand("B", 0x4136);  });
-    server.on("/C", []() {    sendIrCommand("C", 0x4336);  });
-    server.on("/D", []() {    sendIrCommand("D", 0x40b6);  });
+    server.send(200, "text/plain", message);
+    Serial.println(message);
 
-    server.onNotFound(handleNotFound);
-
-    server.begin();
 }
 
 void setup(void) {
@@ -260,20 +133,31 @@ void setup(void) {
     Serial.print("Mac: ");
     Serial.println(WiFi.macAddress());
 
-
     if (MDNS.begin(MDNS_NAME)) {
         Serial.println("MDNS Responder Started");
     }
 
     MDNS.addService("http", "tcp", 80);
 
-    setupRoutes();
+    server.on("/", []{
+        handleHtmlGZ("text/html", data_index_html_gz, data_index_html_gz_len);
+    });
+    server.on("/css/bootstrap.min.css", []{
+        handleHtmlGZ("text/css", data_css_bootstrap_min_css_gz, data_css_bootstrap_min_css_gz_len);
+    });
+
+    server.on("/favicon.ico", []{
+        handleHtmlGZ("image/x-icon", data_favicon_ico_gz, data_favicon_ico_gz_len);
+    });
+
+    server.on("/button", HTTP_POST, buttonPress);
+    server.onNotFound(handleNotFound);
+    server.begin();
+
     Serial.println("HTTP Server Started");
 }
 
 void loop(void) {
-//    MDNS.update();  // needs to be in the loop to rebroadcast from time to time.
-
+    MDNS.update();  // needs to be in the loop to rebroadcast from time to time.
     server.handleClient();
-
 }
