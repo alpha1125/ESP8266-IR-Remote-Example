@@ -150,6 +150,11 @@ void setup(void) {
         handleHtmlGZ("image/x-icon", data_favicon_ico_gz, data_favicon_ico_gz_len);
     });
 
+    server.on("/apple-icon-57x57.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_57x57_png_gz, data_apple_icon_57x57_png_gz_len);});
+    server.on("/apple-icon-72x72.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_72x72_png_gz, data_apple_icon_72x72_png_gz_len);});
+    server.on("/apple-icon-114x114.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_114x114_png_gz, data_apple_icon_114x114_png_gz_len);});
+    server.on("/apple-icon-144x144.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_144x144_png_gz, data_apple_icon_144x144_png_gz_len);});
+
     server.on("/button", HTTP_POST, buttonPress);
     server.onNotFound(handleNotFound);
     server.begin();

@@ -1,3 +1,7 @@
 #include "data/bootstrap.min.css.gz.h"
+#include "data/apple-icon-144x144.png.gz.h"
 #include "data/favicon.ico.gz.h"
+#include "data/apple-icon-114x114.png.gz.h"
+#include "data/apple-icon-57x57.png.gz.h"
 #include "data/index.html.gz.h"
+#include "data/apple-icon-72x72.png.gz.h"

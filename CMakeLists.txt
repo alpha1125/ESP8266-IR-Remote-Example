@@ -10,7 +10,7 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_C_COMPILER_WORKS 1)
 set(CMAKE_CXX_COMPILER_WORKS 1)
 
-project("untitled2" C CXX)
+project("ESP8266-ir-remote" C CXX)
 
 include(CMakeListsPrivate.txt)
 
@@ -30,5 +30,4 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(Z_DUMMY_TARGET ${SRC_LIST} src/configuration.h ../../.platformio/packages/framework-arduinoespressif8266/cores/esp8266/credentials.h src/html.h src/codes.h)
-
+add_executable(Z_DUMMY_TARGET ${SRC_LIST})
