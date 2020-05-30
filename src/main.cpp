@@ -6,24 +6,31 @@
 #include <ESP8266mDNS.h>
 
 
-#include "credentials.h"
+#include <credentials.h>
 #include "configuration.h"
 #include "html.h" // HTML portion.
 
-#include "Button.h" // IR Codes portion.
+//#include "Button.h" // IR Codes portion.
 
-std::vector<Button> vectorOfButtons;
+//std::vector<Button> vectorOfButtons;
 
 // Uncomment to override the credentials.h file.
 // #define mySSID "wifi_ssid"
 // #define myPASSWORD "wifi_password"
-//#define MDNS_NAME "mdnsHostName"  // =>  e.g: mdnsHostName.local
+// #define MDNS_NAME "mdnsHostName"  // =>  e.g: mdnsHostName.local
 
 ESP8266WebServer server(WEB_SERVER_PORT);
 IRsend           irsend(IR_SEND_PIN);
 
 const int led = LED_BUILTIN;
 
+/**
+ * Examples: of encodingString "text/html", "text/css", "image/x-icon"
+ *
+ * @param encodingString
+ * @param gzString
+ * @param size
+ */
 void handleHtmlGZ(const char *encodingString, const char *gzString, const int size) {
     digitalWrite(led, 0);
 
@@ -112,11 +119,35 @@ void buttonPress(){
 
 }
 
+void handleRoutes(){
+    server.on("/", []{
+        handleHtmlGZ("text/html", data_index_html_gz, data_index_html_gz_len);
+    });
+    server.on("/css/bootstrap.min.css", []{
+        handleHtmlGZ("text/css", data_css_bootstrap_min_css_gz, data_css_bootstrap_min_css_gz_len);
+    });
+
+    server.on("/favicon.ico", []{
+        handleHtmlGZ("image/x-icon", data_favicon_ico_gz, data_favicon_ico_gz_len);
+    });
+
+    server.on("/apple-icon-57x57.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_57x57_png_gz, data_apple_icon_57x57_png_gz_len);});
+    server.on("/apple-icon-72x72.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_72x72_png_gz, data_apple_icon_72x72_png_gz_len);});
+    server.on("/apple-icon-114x114.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_114x114_png_gz, data_apple_icon_114x114_png_gz_len);});
+    server.on("/apple-icon-144x144.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_144x144_png_gz, data_apple_icon_144x144_png_gz_len);});
+
+    server.on("/button", HTTP_POST, buttonPress);
+    server.onNotFound(handleNotFound);
+    server.begin();
+}
+
+
 void setup(void) {
     irsend.begin();
     pinMode(led, OUTPUT);
     digitalWrite(led, 1);
     Serial.begin(115200);
+    WiFi.mode(WIFI_STA);
     WiFi.begin(mySSID, myPASSWORD);
     Serial.println("Attempting to connect to WiFi");
 
@@ -139,25 +170,8 @@ void setup(void) {
 
     MDNS.addService("http", "tcp", 80);
 
-    server.on("/", []{
-        handleHtmlGZ("text/html", data_index_html_gz, data_index_html_gz_len);
-    });
-    server.on("/css/bootstrap.min.css", []{
-        handleHtmlGZ("text/css", data_css_bootstrap_min_css_gz, data_css_bootstrap_min_css_gz_len);
-    });
+    handleRoutes();
 
-    server.on("/favicon.ico", []{
-        handleHtmlGZ("image/x-icon", data_favicon_ico_gz, data_favicon_ico_gz_len);
-    });
-
-    server.on("/apple-icon-57x57.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_57x57_png_gz, data_apple_icon_57x57_png_gz_len);});
-    server.on("/apple-icon-72x72.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_72x72_png_gz, data_apple_icon_72x72_png_gz_len);});
-    server.on("/apple-icon-114x114.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_114x114_png_gz, data_apple_icon_114x114_png_gz_len);});
-    server.on("/apple-icon-144x144.png", []{handleHtmlGZ("image/x-icon", data_apple_icon_144x144_png_gz, data_apple_icon_144x144_png_gz_len);});
-
-    server.on("/button", HTTP_POST, buttonPress);
-    server.onNotFound(handleNotFound);
-    server.begin();
 
     Serial.println("HTTP Server Started");
 }
